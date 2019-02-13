@@ -10,13 +10,55 @@ if (window.File && window.FileReader && window.FileList && window.Blob) {
         }
 		var reader = new FileReader();
 		reader.onload = function(event){
+            var array_data = []
+            hasErrors = false;
 			var fileContent = event.target.result
+            try {
             var array_data = $.csv.toObjects(fileContent, {separator:'\t'}, (err, data) => {
-                            if (err) { console.log(err); alert('error reading csv' + err); return; }
+                            if (err) { console.log(err); hasErrors= true;  throw "Cannot read CSV!"; }
                             var table = $('#example1').DataTable();
+                            table.clear()
                             table.rows.add( data ).draw();
 
                           });
+            }
+            catch {
+                array_data = $.csv.toObjects(fileContent, {separator:'|'}, (err, data) => {
+                            if (err) { console.log(err); hasErrors = true; return; }
+                            var table = $('#example1').DataTable();
+                            table.clear()
+                            table.rows.add( data ).draw();
+
+                          });
+            }
+            finally {
+                
+                if (hasErrors!=false) return;
+                $('#example1').DataTable().columns([2]).every( function () {
+                var column = this;
+                var container = $("#predictionFilterDiv")
+                container.show();
+                container.html('')
+                var select = $('<select><option value=""></option></select>')
+                    .appendTo( container )
+                    .on( 'change', function () {
+                        var val = $.fn.dataTable.util.escapeRegex(
+                            $(this).val()
+                        );
+ 
+                        column
+                            .search( val ? '^'+val+'$' : '', true, false )
+                            .draw();
+                    } );
+ 
+                column.data().unique().sort().each( function ( d, j ) {
+                    select.append( '<option value="'+d+'">'+d+'</option>' )
+                } );
+            } );
+                
+            }
+            
+           
 
 		} //end  reader.onload 
     
