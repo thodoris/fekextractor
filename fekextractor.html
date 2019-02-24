@@ -321,8 +321,8 @@
             "paging":   false,
             columns: [
                 { "data": "ArticleNo" },
-                { "data": "RawParagraph" },
-                { "data": "Prediction" },
+                { "data": "RawParagraph" , "className": "rowtext" },
+                { "data": "Prediction","className": "rowprediction" },
 
             ],
             buttons: [
@@ -349,17 +349,68 @@
          var table = $('#example1').DataTable();
   
         
-        $('#example1').on('click', 'tr', function(e) {
-          const currentPred = table.row($(this).closest('tr')).data()["Prediction"];
+        $('#example1').on('contextmenu', 'td', function(e) {
+          e.preventDefault();
+          const cell_clicked = table.cell(this).data();
+          const row_clicked  = $(this).closest('tr');
+          const currentPred = table.row(row_clicked).data()["Prediction"];
           if (currentPred!=='' && currentPred!== undefined && colorMap.has(currentPred)) {
             const newPred = predMapCycle.get(currentPred);
-            console.log('API row values : ', table.row(this).data());
-            var cell = table.cell( table.row($(this).closest('tr')) , 2 );
+            console.log('API row values : ', table.row(row_clicked).data());
+            var cell = table.cell( table.row(row_clicked) , 2 );
             cell.data( newPred ).draw();
             
             }
           
-        }); //table.on('click', 'tbody tr',
+        }); //table.on('dblclick', 'tbody tr',
+        
+          $('#example1').on('click', 'td', function(e) {
+          const cell_clicked = table.cell(this);
+          const row_clicked  = $(this).closest('tr');
+          
+          if (cell_clicked.index().column!==1) return;
+          
+          const sel = window.getSelection();
+
+          if (sel==null || sel=='undefined' || sel.length<1) return;
+          sel.modify('extend','backward','word');
+          const wrd1 = sel.toString();
+          sel.modify('extend','forward','word');
+          const wrd2 = sel.toString();
+          const word = wrd1+wrd2;
+          
+          const currentPred = table.row(row_clicked).data()["Prediction"];
+          const currentArticle = table.row(row_clicked).data()["ArticleNo"];
+          const cell_clicked_data = cell_clicked.data();
+          const splitted  = cell_clicked_data.split(word);
+          const left_part = splitted[0] ;
+          const right_part = word + splitted[1];
+          table.row.add( {
+                "ArticleNo":currentArticle+ "a",
+                "RawParagraph":right_part,
+                "Prediction":currentPred,
+            } ).draw();
+            
+            cell_clicked.data(left_part).draw();
+            
+            //move added row to desired index (here the row we clicked on)
+            const row_index = table.row(row_clicked).index();
+            const row_count = table.data().length-1;
+            const insertedRow = table.row(row_count).data();
+            
+            let tempRow;
+
+            for (var i=row_count;i>row_index;i--) {
+                tempRow = table.row(i-1).data();
+                table.row(i).data(tempRow);
+                table.row(i-1).data(insertedRow);
+            }     
+            //refresh the current page
+            table.draw();
+           
+          
+        }); //table.on('dblclick', 'tbody tr',
+        
 
     });
 
